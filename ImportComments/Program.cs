@@ -1,9 +1,12 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
-using System;
+﻿using System;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.MSBuild;
+using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Options;
 using System.IO;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis.CSharp.Formatting;
 
 namespace ImportComments
 {
@@ -39,21 +42,36 @@ namespace ImportComments
 
             foreach (var file in EnumerateSourceFiles(args[1]))
             {
-                Console.WriteLine(file);
-
                 SyntaxTree tree = (SyntaxTree)CSharpSyntaxTree.ParseText(
                    File.ReadAllText(file));
 
-                var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("test", syntaxTrees: new[] { tree });
+                var compilation = CSharpCompilation.Create("test", syntaxTrees: new[] { tree });
                 var rewriter = new Rewriter(compilation.GetSemanticModel(tree), p.MembersDictionary);
                 var newTreeRootNode = rewriter.Visit(tree.GetRoot());
                 var newTree = newTreeRootNode.SyntaxTree;
 
-                Workspace workspace = MSBuildWorkspace.Create();
-                SyntaxNode formattedNode = Microsoft.CodeAnalysis.Formatting.Formatter.Format(newTree.GetRoot(), workspace);
+                //Checks to see if the source code was changed
+                if (tree != newTree)
+                {
+                    Workspace workspace = MSBuildWorkspace.Create();
+                    OptionSet options = workspace.Options;
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousMethods, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousTypes, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInControlBlocks, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInLambdaExpressionBody, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInMethods, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, false);
+                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInTypes, false);
 
-                // TO-DO: It should just overwrite the old file. Writing to a new one to test it for now
-                File.WriteAllText(file.Replace(".cs","_new.cs"), formattedNode.ToFullString());
+                    SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
+
+                    // TODO: It should just overwrite the old file. Writing to a new one to test it for now
+                    Console.WriteLine($"Saving file: {file}");
+                    File.WriteAllText(file.Replace(".cs", "_new.cs"), formattedNode.ToFullString());
+                }
+
             }
 
             Console.WriteLine("Press ENTER to exit;");

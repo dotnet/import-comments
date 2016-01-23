@@ -20,14 +20,19 @@ namespace ImportComments
             _membersDictionary = membersDictionary;
         }
 
-        // Given a SyntaxNode for an API node,
-        // look up the doc comment and return it as a string.
+        /// <summary>
+        /// Given a SyntaxNode for an API node, look up the doc comment and return it as a string.
+        /// </summary>
+        /// <param name="id">CommentID for the API</param>
+        /// <returns>/// comments for the given API</returns>
         public string GetDocCommentForId(string id)
         {
             string docComment = string.Empty;
             try
             {
                 string intelliSenseContent = _membersDictionary[id];
+
+                intelliSenseContent = intelliSenseContent.Replace("\n", "");
 
                 using (XmlReader reader = XmlReader.Create(new StringReader(intelliSenseContent)))
                 {
@@ -38,7 +43,7 @@ namespace ImportComments
                         if (reader.NodeType == XmlNodeType.Element)
                             output.Append("/// " + reader.ReadOuterXml() + "\r\n");
                     } while (reader.Read());
-                    docComment = output.ToString();
+                    docComment = output.ToString().Replace("        ", "");
                 }
             }
             catch(KeyNotFoundException)
@@ -273,7 +278,7 @@ namespace ImportComments
             return node;
         }
 
-        //TO-DO: which ones we need to filter out?
+        //TODO: which ones we need to filter out?
         private bool IsPrivateOrProtected(Accessibility enumValue)
         {
             return new[] { Accessibility.Private, Accessibility.Internal }.Contains(enumValue);
