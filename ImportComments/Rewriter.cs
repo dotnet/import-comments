@@ -49,7 +49,8 @@ namespace ImportComments
             catch(KeyNotFoundException)
             {
                 // Writing the IDs not found for now to find any issues with Roslyn
-                System.Diagnostics.Debug.WriteLine($"id not found {id}");
+                // System.Diagnostics.Debug.WriteLine($"id not found {id}");
+                System.Console.WriteLine($"id not found {id}");
             }
 
             return docComment;
@@ -189,17 +190,6 @@ namespace ImportComments
             return node;
         }
 
-        public override SyntaxNode VisitNamespaceDeclaration(NamespaceDeclarationSyntax node)
-        {
-            if (node == null)
-                return null;
-            var symbol = m_model.GetDeclaredSymbol(node);
-            node = (NamespaceDeclarationSyntax)base.VisitNamespaceDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
-                node = (NamespaceDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
-            return node;
-        }
-
         public override SyntaxNode VisitOperatorDeclaration(OperatorDeclarationSyntax node)
         {
             if (node == null)
@@ -233,13 +223,23 @@ namespace ImportComments
             return node;
         }
 
+        public override SyntaxNode VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node) 
+        {
+            if (node == null)
+                return null;
+            var symbol = m_model.GetDeclaredSymbol(node);
+            node = (EnumMemberDeclarationSyntax)base.VisitEnumMemberDeclaration(node);
+            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+                node = (EnumMemberDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
+            return node;
+        }
 
         private SyntaxNode ApplyDocComment(SyntaxNode node, string docCommentId)
         {
             if (docCommentId == null)
                 return node;
 
-            // Look up the comment text - this needs to eventually read from DDUEML/ Intellisense
+            // Look up the comment text
             string docCommentText = GetDocCommentForId(docCommentId);
 
             // Get the SyntaxTrivia for the comment
@@ -250,26 +250,19 @@ namespace ImportComments
             {
                 SyntaxTriviaList triviaList = node.GetLeadingTrivia();
                 SyntaxTrivia firstComment = triviaList.Last();
-                //foreach (var trivia in triviaList.Reverse())
-                //{
-                //    SyntaxKind kind = trivia.Kind();
 
-                //    switch (kind)
-                //    {
-                //        case SyntaxKind.SingleLineCommentTrivia:
-                //        case SyntaxKind.MultiLineCommentTrivia:
-                //        case SyntaxKind.MultiLineDocumentationCommentTrivia:
-                //        case SyntaxKind.SingleLineDocumentationCommentTrivia:
-                //            // Found existing comment or XML doc comment
-                //            //firstComment = trivia;
-                //            break;
-                //        default:
-                //            break;
-                //    }
-                //}
+                // Check to see if there are any existing doc comments
+                var docComments = triviaList
+                        .Where(n => n.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) || n.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
+                        .Select(t => t.GetStructure())
+                        .OfType<DocumentationCommentTriviaSyntax>()
+                        .ToList();
 
-                // Append the doc comment
-                node = node.InsertTriviaBefore(firstComment, newTrivia);
+                if (!docComments.Any())
+                {
+                    // Append the doc comment
+                    node = node.InsertTriviaBefore(firstComment, newTrivia);
+                }
             }
             else // no leading trivia
             {
@@ -278,7 +271,6 @@ namespace ImportComments
             return node;
         }
 
-        //TODO: which ones we need to filter out?
         private bool IsPrivateOrProtected(Accessibility enumValue)
         {
             return new[] { Accessibility.Private, Accessibility.Internal }.Contains(enumValue);

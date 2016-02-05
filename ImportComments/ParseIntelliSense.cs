@@ -57,7 +57,7 @@ namespace ImportComments
 
         private IEnumerable<UidAndReader> EnumerateDeveloperComments(string file)
         {
-            Console.WriteLine($"Loading developer comments from file: {file}");
+            //Console.WriteLine($"Loading developer comments from file: {file}");
             return from reader in
                        new Func<XmlReader>(() => XmlReader.Create(file))
                        .EmptyIfThrow()
