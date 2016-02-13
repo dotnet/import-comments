@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.Options;
 using System.IO;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
+using Microsoft.CodeAnalysis.Text;
 
 namespace ImportComments
 {
@@ -45,8 +46,15 @@ namespace ImportComments
 
             foreach (var file in EnumerateSourceFiles(args[1]))
             {
-                SyntaxTree tree = (SyntaxTree)CSharpSyntaxTree.ParseText(
-                   File.ReadAllText(file));
+
+                // Reads the source code from the file
+                SourceText text;
+                using (var stream = File.OpenRead(file))
+                {
+                    text = SourceText.From(stream);
+                }
+
+                SyntaxTree tree = (SyntaxTree)CSharpSyntaxTree.ParseText(text);
 
                 var compilation = CSharpCompilation.Create("test", syntaxTrees: new[] { tree }, 
                     references: metadataReferences);
@@ -72,7 +80,11 @@ namespace ImportComments
                     SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
 
                     Console.WriteLine($"Saving file: {file}");
-                    File.WriteAllText(file, formattedNode.ToFullString());
+                    SourceText newText = formattedNode.GetText();
+                    using (var writer = new StreamWriter(file, append: false, encoding: text.Encoding))
+                    {
+                        newText.Write(writer);
+                    }
                 }
 
             }

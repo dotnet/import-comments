@@ -48,9 +48,10 @@ namespace ImportComments
             }
             catch(KeyNotFoundException)
             {
-                // Writing the IDs not found for now to find any issues with Roslyn
-                // System.Diagnostics.Debug.WriteLine($"id not found {id}");
-                System.Console.WriteLine($"id not found {id}");
+#if DEBUG
+                // Writing the IDs not found to investigate possible issues with the tool
+                System.Diagnostics.Debug.WriteLine($"id not found {id}");
+#endif
             }
 
             return docComment;
@@ -63,7 +64,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (ClassDeclarationSyntax) ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -74,7 +75,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (MethodDeclarationSyntax)base.VisitMethodDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (MethodDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -85,7 +86,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (ConstructorDeclarationSyntax)base.VisitConstructorDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (ConstructorDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -96,7 +97,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (DelegateDeclarationSyntax)base.VisitDelegateDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (DelegateDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -107,7 +108,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (ConversionOperatorDeclarationSyntax) base.VisitConversionOperatorDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (ConversionOperatorDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -118,7 +119,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (DestructorDeclarationSyntax)base.VisitDestructorDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (DestructorDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -129,7 +130,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (EnumDeclarationSyntax)base.VisitEnumDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (EnumDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -140,7 +141,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (EventDeclarationSyntax)base.VisitEventDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (EventDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -152,7 +153,7 @@ namespace ImportComments
             //var symbol = m_model.GetDeclaredSymbol(node);
             var symbol = m_model.GetDeclaredSymbol(node.Declaration.Variables.First());
             node = (EventFieldDeclarationSyntax)base.VisitEventFieldDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (EventFieldDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -163,7 +164,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node.Declaration.Variables.First());
             node = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);            
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (FieldDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -174,7 +175,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (IndexerDeclarationSyntax)base.VisitIndexerDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (IndexerDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -185,7 +186,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (InterfaceDeclarationSyntax)base.VisitInterfaceDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (InterfaceDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -196,7 +197,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (OperatorDeclarationSyntax)base.VisitOperatorDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (OperatorDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -207,7 +208,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (PropertyDeclarationSyntax)base.VisitPropertyDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (PropertyDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -218,7 +219,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (StructDeclarationSyntax)base.VisitStructDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (StructDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -229,7 +230,7 @@ namespace ImportComments
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (EnumMemberDeclarationSyntax)base.VisitEnumMemberDeclaration(node);
-            if (!IsPrivateOrProtected(symbol.DeclaredAccessibility))
+            if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (EnumMemberDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
@@ -263,6 +264,12 @@ namespace ImportComments
                     // Append the doc comment
                     node = node.InsertTriviaBefore(firstComment, newTrivia);
                 }
+#if DEBUG
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"/// comment already exists: {docCommentId}");
+                }
+#endif
             }
             else // no leading trivia
             {
@@ -271,11 +278,10 @@ namespace ImportComments
             return node;
         }
 
-        private bool IsPrivateOrProtected(Accessibility enumValue)
+        private bool IsPrivateOrInternal(Accessibility enumValue)
         {
             return new[] { Accessibility.Private, Accessibility.Internal }.Contains(enumValue);
         }
 
     }
 }
-
