@@ -66,16 +66,8 @@ namespace ImportComments
                 if (tree != newTree)
                 {
                     Workspace workspace = MSBuildWorkspace.Create();
-                    OptionSet options = workspace.Options;
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousMethods, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousTypes, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInControlBlocks, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInLambdaExpressionBody, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInMethods, true);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, true);
-                    options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInTypes, true);
+
+                    var options = SetOptions(workspace.Options);
 
                     SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
 
@@ -91,6 +83,21 @@ namespace ImportComments
 
             Console.WriteLine("Press ENTER to exit;");
             Console.ReadLine();
+        }
+
+        private static OptionSet SetOptions(OptionSet options)
+        {
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousMethods, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousTypes, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInControlBlocks, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInLambdaExpressionBody, false);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInMethods, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, true);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInTypes, true);
+
+            return options;
         }
 
         private static IEnumerable<string> EnumerateSourceFiles(string path) =>
