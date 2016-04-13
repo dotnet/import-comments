@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.IO;
+using System;
 
 namespace ImportComments
 {
@@ -40,13 +41,30 @@ namespace ImportComments
                     reader.ReadToDescendant("summary");
                     do
                     {
+                        // 1.  reader.ReadInnerXml gets me the body of content between the tags
+                        // 2.  reader.ReadOuterXml gets me the entire tag and its body
+                        //
+                        //
                         if (reader.NodeType == XmlNodeType.Element)
-                            output.Append("/// " + reader.ReadOuterXml() + "\r\n");
+                        {
+                            if (reader.Name.ToLower() == "summary")
+                            {
+                                var inner = reader.ReadInnerXml();
+
+                                var formattedInner = CommentFormatting.FormatInnerSummary(inner);
+
+                                output.Append($"/// <summary>\r\n{formattedInner}/// </summary>\r\n");
+                            }
+                            else
+                            {
+                                output.Append("/// " + reader.ReadOuterXml() + "\r\n");
+                            }
+                        }
                     } while (reader.Read());
                     docComment = output.ToString().Replace("        ", "");
                 }
             }
-            catch(KeyNotFoundException)
+            catch (KeyNotFoundException)
             {
 #if DEBUG
                 // Writing the IDs not found to investigate possible issues with the tool
@@ -55,7 +73,6 @@ namespace ImportComments
             }
 
             return docComment;
-
         }
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
@@ -65,7 +82,7 @@ namespace ImportComments
             var symbol = m_model.GetDeclaredSymbol(node);
             node = (ClassDeclarationSyntax)base.VisitClassDeclaration(node);
             if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
-                node = (ClassDeclarationSyntax) ApplyDocComment(node, symbol.GetDocumentationCommentId());
+                node = (ClassDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
         }
 
@@ -107,7 +124,7 @@ namespace ImportComments
             if (node == null)
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node);
-            node = (ConversionOperatorDeclarationSyntax) base.VisitConversionOperatorDeclaration(node);
+            node = (ConversionOperatorDeclarationSyntax)base.VisitConversionOperatorDeclaration(node);
             if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (ConversionOperatorDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
@@ -163,7 +180,7 @@ namespace ImportComments
             if (node == null)
                 return null;
             var symbol = m_model.GetDeclaredSymbol(node.Declaration.Variables.First());
-            node = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);            
+            node = (FieldDeclarationSyntax)base.VisitFieldDeclaration(node);
             if (!IsPrivateOrInternal(symbol.DeclaredAccessibility))
                 node = (FieldDeclarationSyntax)ApplyDocComment(node, symbol.GetDocumentationCommentId());
             return node;
@@ -224,7 +241,7 @@ namespace ImportComments
             return node;
         }
 
-        public override SyntaxNode VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node) 
+        public override SyntaxNode VisitEnumMemberDeclaration(EnumMemberDeclarationSyntax node)
         {
             if (node == null)
                 return null;
