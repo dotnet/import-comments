@@ -12,7 +12,7 @@ namespace UnitTestProject1
         {
             var xmlComment = @"Initializes a new instance of the <see cref = ""T:System.Globalization.Calendar"" /> class.";
 
-            var expected = @"/// Initializes a new instance of the <see cref = ""T:System.Globalization.Calendar"" /> class.\r\n";
+            var expected = "/// Initializes a new instance of the <see cref = \"T:System.Globalization.Calendar\" /> class.\r\n";
             var actual = CommentFormatting.FormatInnerSummary(xmlComment);
 
             Assert.AreEqual(expected, actual);
@@ -49,12 +49,23 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
-        public void HasXmlTagAtLowerBoundAndBeyondLimitTest()
+        public void SimpleHasSingleXmlTagInsideTest()
         {
-            var xmlComment = @"Initializes a new instance of the super duper duper duper <see cref = ""T:System.Globalization.Calendar"" /> class.";
+            var xml = @"Initializes a new instance of the <see cref=""T: System.Globalization.RegionInfo"" /> class based on the country/region or specific culture, specified by name.";
 
-            var expected = "/// Initializes a new instance of the super duper duper duper\r\n/// <see cref = \"T:System.Globalization.Calendar\" /> class.\r\n";
-            var actual = CommentFormatting.FormatInnerSummary(xmlComment);
+            var expected = "/// Initializes a new instance of the <see cref=\"T: System.Globalization.RegionInfo\" /> class based\r\n/// on the country/region or specific culture, specified by name.\r\n";
+            var actual = CommentFormatting.FormatInnerSummary(xml);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void SplitLocationInsideTagShouldSplitAtBeginningOfTagTest()
+        {
+            var xml = @"Determines whether the specified object is the same instance as the current <see cref=""T: System.Globalization.RegionInfo"" />.";
+
+            var expected = "/// Determines whether the specified object is the same instance as the current\r\n/// <see cref=\"T: System.Globalization.RegionInfo\" />.\r\n";
+            var actual = CommentFormatting.FormatInnerSummary(xml);
 
             Assert.AreEqual(expected, actual);
         }

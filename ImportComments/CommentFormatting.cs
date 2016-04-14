@@ -64,10 +64,10 @@ namespace ImportComments
                         }
                         else // The tag exceeds our limit of 120 chars, so we split at the beginning of the tag.
                         {
-                            int endOfTag = endAndOkay.Item1;
-                            substrings.Add(s.Substring(start, endOfTag - start).Trim());
+                            int beginOfTag = BeginningOfTagIndex(s, i);
+                            substrings.Add(s.Substring(start, beginOfTag - start).Trim());
 
-                            start += endOfTag - start;
+                            start += beginOfTag - start;
                         }
                     }
                     else
@@ -83,6 +83,12 @@ namespace ImportComments
             substrings.Add(s.Substring(start, s.Length - start).Trim());
 
             return substrings;
+        }
+
+        private static int BeginningOfTagIndex(string s, int i)
+        {
+            while (s[--i] != '<') ;
+            return i;
         }
 
         // Boy it sure would be nice to have those C# 7 tuples.
