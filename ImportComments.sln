@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportComments", "ImportComments.csproj", "{B473CE09-88F1-4F33-9756-38CF7C72E9BD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportComments", "ImportComments/ImportComments.csproj", "{B473CE09-88F1-4F33-9756-38CF7C72E9BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommentFormattingTests.cs", "..\CommentFormattingTests.cs\CommentFormattingTests.cs.csproj", "{A6C9969C-D42A-44E2-845B-26980A930093}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommentFormattingTests", "CommentFormattingTests\CommentFormattingTests.csproj", "{A6C9969C-D42A-44E2-845B-26980A930093}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
