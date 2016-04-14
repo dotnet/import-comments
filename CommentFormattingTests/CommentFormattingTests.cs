@@ -75,7 +75,18 @@ namespace UnitTestProject1
         {
             var xmlComment = @"When overridden in a derived class, returns the day of the week in the specified <see cref=""T: System.DateTime"" />.";
 
-            var expected = "/// When overridden in a derived class, returns the day of the week in the specified <see cref=\"T: System.DateTime\" />.\r\n";
+            var expected = "/// When overridden in a derived class, returns the day of the week in the specified\r\n/// <see cref=\"T: System.DateTime\" />.\r\n";
+            var actual = CommentFormatting.FormatInnerSummary(xmlComment);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void LongerWithTagInsideTest()
+        {
+            var xmlComment = @"Searches for the specified character and returns the zero-based index of the last occurrence within the entire source string using the specified <see cref=""T: System.Globalization.CompareOptions"" /> value.";
+
+            var expected = "/// Searches for the specified character and returns the zero-based index of the last occurrence\r\n/// within the entire source string using the specified <see cref=\"T: System.Globalization.CompareOptions\" />\r\n/// value.\r\n";
             var actual = CommentFormatting.FormatInnerSummary(xmlComment);
 
             Assert.AreEqual(expected, actual);

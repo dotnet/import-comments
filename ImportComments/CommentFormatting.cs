@@ -32,6 +32,7 @@ namespace ImportComments
 
             int start = 0;
             int lowerBound = 90;
+            int limit = 110;
             bool inTag = false;
 
             for (int i = 0; i < s.Length; i++)
@@ -48,25 +49,36 @@ namespace ImportComments
 
                 if (IsLongEnough(i, lowerBound) && char.IsWhiteSpace(s[i]))
                 {
+                    // Can't split if we're inside of a tag.
                     if (inTag)
                     {
-                        var endAndOkay = EndOfTagAndIsItOkay(s, i, limit: 120);
+                        var endAndWithinLimit = EndOfTagAndIsWithinLimit(s, i, limit);
 
-                        if (endAndOkay.Item2)
+                        if (endAndWithinLimit.Item2)
                         {
-                            int end = endAndOkay.Item1;
+                            int end = endAndWithinLimit.Item1;
 
                             if (end < s.Length && IsPunctuation(s[end + 1]))
                             {
-                                // Split after the punctuation.
+                                // Split after the punctuation.  Also +2 because off-by-one when accounting for including punctuation.
                                 substrings.Add(s.Substring(start, end + 2 - start).Trim());
                                 start += end + 2 - start;
 
-                                // I guess adjust i?
+                                // I guess adjust i? ... TODO: make sure this is needed
                                 i = start;
                             }
+                            else if (end < s.Length)
+                            {
+                                // +1 to length to substring because off-by-one errors.
+                                substrings.Add(s.Substring(start, end + 1 - start).Trim());
+                                start += end + 1 - start;
+                            }
+                            else
+                            {
+                                // uhhhhhhh this would be weird
+                            }
                         }
-                        else // The tag exceeds our limit of 120 chars, so we split at the beginning of the tag.
+                        else // The tag exceeds the reasonable limit, so we split at the beginning of the tag.
                         {
                             int beginOfTag = BeginningOfTagIndex(s, i);
                             substrings.Add(s.Substring(start, beginOfTag - start).Trim());
@@ -78,9 +90,11 @@ namespace ImportComments
                     {
                         substrings.Add(s.Substring(start, i - start).Trim());
 
-                        start += i - start;
-                        lowerBound += 100;
+                        start += i - start;   
                     }
+
+                    lowerBound += 100;
+                    limit += 100;
                 }
             }
 
@@ -100,7 +114,7 @@ namespace ImportComments
         }
 
         // Boy it sure would be nice to have those C# 7 tuples.
-        private static Tuple<int, bool> EndOfTagAndIsItOkay(string s, int i, int limit)
+        private static Tuple<int, bool> EndOfTagAndIsWithinLimit(string s, int i, int limit)
         {
             for (; i <= limit; i++)
             {
@@ -110,7 +124,7 @@ namespace ImportComments
                 }
             }
 
-            while (s[++i] != '>') ; // Scan until we reach the end of the tag.
+            while (s[++i] != '>') ; // Scan until we reach the end of the tag, because we still need that information.
 
             return Tuple.Create(i, false);
         }
