@@ -59,7 +59,11 @@ namespace ImportComments
                             if (end < s.Length && IsPunctuation(s[end + 1]))
                             {
                                 // Split after the punctuation.
-                                substrings.Add(s.Substring(start, end + 1 - start).Trim());
+                                substrings.Add(s.Substring(start, end + 2 - start).Trim());
+                                start += end + 2 - start;
+
+                                // I guess adjust i?
+                                i = start;
                             }
                         }
                         else // The tag exceeds our limit of 120 chars, so we split at the beginning of the tag.
@@ -80,7 +84,11 @@ namespace ImportComments
                 }
             }
 
-            substrings.Add(s.Substring(start, s.Length - start).Trim());
+            // for the case when the comment should only be one line, and is within the limit
+            if (start < s.Length)
+            {
+                substrings.Add(s.Substring(start, s.Length - start).Trim());
+            }
 
             return substrings;
         }

@@ -51,10 +51,10 @@ namespace UnitTestProject1
         [TestMethod]
         public void SimpleHasSingleXmlTagInsideTest()
         {
-            var xml = @"Initializes a new instance of the <see cref=""T: System.Globalization.RegionInfo"" /> class based on the country/region or specific culture, specified by name.";
+            var xmlComment = @"Initializes a new instance of the <see cref=""T: System.Globalization.RegionInfo"" /> class based on the country/region or specific culture, specified by name.";
 
             var expected = "/// Initializes a new instance of the <see cref=\"T: System.Globalization.RegionInfo\" /> class based\r\n/// on the country/region or specific culture, specified by name.\r\n";
-            var actual = CommentFormatting.FormatInnerSummary(xml);
+            var actual = CommentFormatting.FormatInnerSummary(xmlComment);
 
             Assert.AreEqual(expected, actual);
         }
@@ -62,10 +62,21 @@ namespace UnitTestProject1
         [TestMethod]
         public void SplitLocationInsideTagShouldSplitAtBeginningOfTagTest()
         {
-            var xml = @"Determines whether the specified object is the same instance as the current <see cref=""T: System.Globalization.RegionInfo"" />.";
+            var xmlComment = @"Determines whether the specified object is the same instance as the current <see cref=""T: System.Globalization.RegionInfo"" />.";
 
             var expected = "/// Determines whether the specified object is the same instance as the current\r\n/// <see cref=\"T: System.Globalization.RegionInfo\" />.\r\n";
-            var actual = CommentFormatting.FormatInnerSummary(xml);
+            var actual = CommentFormatting.FormatInnerSummary(xmlComment);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        public void SplitLocationInsideTagButWithinLimitTest()
+        {
+            var xmlComment = @"When overridden in a derived class, returns the day of the week in the specified <see cref=""T: System.DateTime"" />.";
+
+            var expected = "/// When overridden in a derived class, returns the day of the week in the specified <see cref=\"T: System.DateTime\" />.\r\n";
+            var actual = CommentFormatting.FormatInnerSummary(xmlComment);
 
             Assert.AreEqual(expected, actual);
         }
