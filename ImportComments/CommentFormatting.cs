@@ -1,11 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml;
 
 namespace ImportComments
 {
@@ -19,7 +13,8 @@ namespace ImportComments
 
                 if (hastag)
                 {
-                    // we know to be a bit more careful here
+                    var substrings = GetSubstrings(innerXml);
+                    return $"/// {string.Join("\r\n/// ", substrings)}\r\n";
                 }
                 else
                 {
@@ -36,7 +31,7 @@ namespace ImportComments
             var substrings = new List<string>();
 
             int start = 0;
-            int low = 90;
+            int lowerBound = 90;
             bool inTag = false;
 
             for (int i = 0; i < s.Length; i++)
@@ -51,31 +46,37 @@ namespace ImportComments
                     inTag = false;
                 }
 
-                if (IsLongEnough(i, low) && char.IsWhiteSpace(s[i]))
+                if (IsLongEnough(i, lowerBound) && char.IsWhiteSpace(s[i]))
                 {
                     if (inTag)
                     {
-                        // if end of tag <= 120 and if what follows isn't punctuation, split at end
-                        // if what follows is a period and we're at the end, break out
+                        var endAndOkay = EndOfTagAndIsItOkay(s, i, limit: 120);
 
-                        var endOfTagAndIsItOkay = EndOfTagAndIsItOkay(s, i, limit: 120);
-
-                        if (endOfTagAndIsItOkay.Item2)
+                        if (endAndOkay.Item2)
                         {
-                            int end = endOfTagAndIsItOkay.Item1;
+                            int end = endAndOkay.Item1;
 
                             if (end < s.Length && IsPunctuation(s[end + 1]))
                             {
-                                // split after the punctuation
+                                // Split after the punctuation.
                                 substrings.Add(s.Substring(start, end + 1 - start).Trim());
                             }
                         }
+                        else // The tag exceeds our limit of 120 chars, so we split at the beginning of the tag.
+                        {
+                            int endOfTag = endAndOkay.Item1;
+                            substrings.Add(s.Substring(start, endOfTag - start).Trim());
+
+                            start += endOfTag - start;
+                        }
                     }
+                    else
+                    {
+                        substrings.Add(s.Substring(start, i - start).Trim());
 
-                    substrings.Add(s.Substring(start, i - start).Trim());
-
-                    start += i - start;
-                    low += 100;
+                        start += i - start;
+                        lowerBound += 100;
+                    }
                 }
             }
 
@@ -84,6 +85,7 @@ namespace ImportComments
             return substrings;
         }
 
+        // Boy it sure would be nice to have those C# 7 tuples.
         private static Tuple<int, bool> EndOfTagAndIsItOkay(string s, int i, int limit)
         {
             for (; i <= limit; i++)
@@ -94,7 +96,9 @@ namespace ImportComments
                 }
             }
 
-            return Tuple.Create(limit, false);
+            while (s[++i] != '>') ; // Scan until we reach the end of the tag.
+
+            return Tuple.Create(i, false);
         }
 
         private static bool IsPunctuation(char c) => c == '.' || c == ',' || c == '!' || c == '?';
@@ -104,16 +108,16 @@ namespace ImportComments
             var substrings = new List<string>();
 
             int start = 0;
-            int low = 90;
+            int lowerBound = 90;
 
             for (int i = 0; i < s.Length; i++)
             {
-                if (IsLongEnough(i, low) && char.IsWhiteSpace(s[i]))
+                if (IsLongEnough(i, lowerBound) && char.IsWhiteSpace(s[i]))
                 {
                     substrings.Add(s.Substring(start, i - start).Trim());
 
                     start += i - start;
-                    low += 100;
+                    lowerBound += 100;
                 }
             }
 
