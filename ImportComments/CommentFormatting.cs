@@ -5,8 +5,11 @@ namespace ImportComments
 {
     public static class CommentFormatting
     {
-        public static string FormatInnerSummary(string innerXml)
+        public static string FormatInnerContent(string innerXml)
         {
+            // There are a few cases where there's leading or trailing whitespace, so let's get rid of that.
+            innerXml = innerXml.Trim();
+
             if (IsLongEnough(innerXml.Length, 90))
             {
                 var hastag = HasAnXmlTag(innerXml);
@@ -33,10 +36,13 @@ namespace ImportComments
             int start = 0;
             int lowerBound = 90;
             int limit = 110;
+            int sliceLength = 0;
             bool inTag = false;
 
             for (int i = 0; i < s.Length; i++)
             {
+                sliceLength += 1;
+
                 if (s[i] == '<')
                 {
                     inTag = true;
@@ -47,54 +53,21 @@ namespace ImportComments
                     inTag = false;
                 }
 
-                if (IsLongEnough(i, lowerBound) && char.IsWhiteSpace(s[i]))
+                if (IsLongEnough(sliceLength, lowerBound) && char.IsWhiteSpace(s[i]))
                 {
                     // Can't split if we're inside of a tag.
                     if (inTag)
                     {
-                        var endAndWithinLimit = EndOfTagAndIsWithinLimit(s, i, limit);
-
-                        if (endAndWithinLimit.Item2)
-                        {
-                            int end = endAndWithinLimit.Item1;
-
-                            if (end < s.Length && IsPunctuation(s[end + 1]))
-                            {
-                                // Split after the punctuation.  Also +2 because off-by-one when accounting for including punctuation.
-                                substrings.Add(s.Substring(start, end + 2 - start).Trim());
-                                start += end + 2 - start;
-
-                                // I guess adjust i? ... TODO: make sure this is needed
-                                i = start;
-                            }
-                            else if (end < s.Length)
-                            {
-                                // +1 to length to substring because off-by-one errors.
-                                substrings.Add(s.Substring(start, end + 1 - start).Trim());
-                                start += end + 1 - start;
-                            }
-                            else
-                            {
-                                // uhhhhhhh this would be weird
-                            }
-                        }
-                        else // The tag exceeds the reasonable limit, so we split at the beginning of the tag.
-                        {
-                            int beginOfTag = BeginningOfTagIndex(s, i);
-                            substrings.Add(s.Substring(start, beginOfTag - start).Trim());
-
-                            start += beginOfTag - start;
-                        }
+                        HandleTag(s, substrings, ref start, limit, i);
                     }
                     else
                     {
                         substrings.Add(s.Substring(start, i - start).Trim());
-
                         start += i - start;   
                     }
 
-                    lowerBound += 100;
                     limit += 100;
+                    sliceLength = 0; // reset the counter for slice length, as we're going to be looking at a new slice now.
                 }
             }
 
@@ -105,6 +78,40 @@ namespace ImportComments
             }
 
             return substrings;
+        }
+
+        private static void HandleTag(string s, List<string> substrings, ref int start, int limit, int i)
+        {
+            var endAndWithinLimit = EndOfTagAndIsWithinLimit(s, i, limit);
+
+            if (endAndWithinLimit.Item2)
+            {
+                int end = endAndWithinLimit.Item1;
+
+                if (end + 1 < s.Length && IsPunctuation(s[end + 1]))
+                {
+                    // Split after the punctuation.  Also +2 because off-by-one when accounting for including punctuation.
+                    substrings.Add(s.Substring(start, end + 2 - start).Trim());
+                    start += end + 2 - start;
+                }
+                else if (end < s.Length)
+                {
+                    // +1 to length to substring because off-by-one errors.
+                    substrings.Add(s.Substring(start, end + 1 - start).Trim());
+                    start += end + 1 - start;
+                }
+                else
+                {
+                    // uhhhhhhh this would be weird
+                }
+            }
+            else // The tag exceeds the reasonable limit, so we split at the beginning of the tag.
+            {
+                int beginOfTag = BeginningOfTagIndex(s, i);
+                substrings.Add(s.Substring(start, beginOfTag - start).Trim());
+
+                start += beginOfTag - start;
+            }
         }
 
         private static int BeginningOfTagIndex(string s, int i)
@@ -124,7 +131,10 @@ namespace ImportComments
                 }
             }
 
-            while (s[++i] != '>') ; // Scan until we reach the end of the tag, because we still need that information.
+            while (s[i] != '>')
+            {
+                i++;
+            }
 
             return Tuple.Create(i, false);
         }
@@ -149,7 +159,10 @@ namespace ImportComments
                 }
             }
 
-            substrings.Add(s.Substring(start, s.Length - start).Trim());
+            if (start < s.Length)
+            {
+                substrings.Add(s.Substring(start, s.Length - start).Trim());
+            }
 
             return substrings;
         }

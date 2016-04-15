@@ -41,25 +41,7 @@ namespace ImportComments
                     reader.ReadToDescendant("summary");
                     do
                     {
-                        // 1.  reader.ReadInnerXml gets me the body of content between the tags
-                        // 2.  reader.ReadOuterXml gets me the entire tag and its body
-                        //
-                        //
-                        if (reader.NodeType == XmlNodeType.Element)
-                        {
-                            if (reader.Name.ToLower() == "summary")
-                            {
-                                var inner = reader.ReadInnerXml();
-
-                                var formattedInner = CommentFormatting.FormatInnerSummary(inner);
-
-                                output.Append($"/// <summary>\r\n{formattedInner}/// </summary>\r\n");
-                            }
-                            else
-                            {
-                                output.Append("/// " + reader.ReadOuterXml() + "\r\n");
-                            }
-                        }
+                        AppendPrettyPrintedComment(reader, output);
                     } while (reader.Read());
                     docComment = output.ToString().Replace("        ", "");
                 }
@@ -74,6 +56,59 @@ namespace ImportComments
 
             return docComment;
         }
+
+        private static void AppendPrettyPrintedComment(XmlReader reader, StringBuilder output)
+        {
+            if (reader.NodeType == XmlNodeType.Element)
+            {
+                var name = reader.Name.ToLower();
+
+                if (name == "summary" || name == "returns")
+                {
+                    AppendFormat(reader, output, tagName: name);
+                }
+                else if (name == "exception")
+                {
+                    AppendFormattedOutputWithAttributes(reader, output, tagName: name, attributeTypeName: "cref");
+                }
+                else if (name == "param" || name == "typeparam")
+                {
+                    AppendFormattedOutputWithAttributes(reader, output, tagName: name, attributeTypeName: "name");
+                }
+                else
+                {
+                    output.Append("/// " + reader.ReadOuterXml() + "\r\n");
+                }
+            }
+        }
+
+        private static void AppendFormat(XmlReader reader, StringBuilder output, string tagName)
+        {
+            var inner = reader.ReadInnerXml();
+            var formattedInner = CommentFormatting.FormatInnerContent(inner);
+
+            output.Append($"/// <{tagName}>\r\n{formattedInner}/// </{tagName}>\r\n");
+        }
+
+        private static void AppendFormattedOutputWithAttributes(XmlReader reader, StringBuilder output, string tagName, string attributeTypeName)
+        {
+            var attributeName = reader.HasAttributes ? reader.GetAttribute(0) : string.Empty;
+
+            var inner = reader.ReadInnerXml();
+
+            // Construct the string (sans the ///) and see if its length is reasonable.
+            if (IsShortEnough($"<{tagName} {attributeTypeName }={attributeName}>{inner}</{tagName}>", upperBound: 115))
+            {
+                output.Append($"/// <{tagName} {attributeTypeName }=\"{attributeName}\">{inner.Trim()}</{tagName}>\r\n");
+            }
+            else
+            {
+                var formattedInner = CommentFormatting.FormatInnerContent(inner);
+                output.Append($"/// <{tagName} {attributeTypeName }=\"{attributeName}\">\r\n{formattedInner}/// </{tagName}>\r\n");
+            }
+        }
+
+        private static bool IsShortEnough(string s, int upperBound) => s.Length <= upperBound;
 
         public override SyntaxNode VisitClassDeclaration(ClassDeclarationSyntax node)
         {
