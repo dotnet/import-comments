@@ -71,7 +71,7 @@ namespace ImportComments
                 {
                     AppendFormattedOutputWithAttributes(reader, output, tagName: name, attributeTypeName: "cref");
                 }
-                else if (name == "param")
+                else if (name == "param" || name == "typeparam")
                 {
                     AppendFormattedOutputWithAttributes(reader, output, tagName: name, attributeTypeName: "name");
                 }
