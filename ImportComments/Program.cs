@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.MSBuild;
@@ -16,10 +17,10 @@ namespace ImportComments
         static void Main(string[] args)
         {
 
-            if (args.Length != 2)
+            if (args.Length != 3)
             {
                 Console.WriteLine("Usage:");
-                Console.WriteLine("{0} <IntelliSenseDirectory> <SourceDirectory>", AppDomain.CurrentDomain.FriendlyName);
+                Console.WriteLine("{0} <IntelliSenseDirectory> <SourceDirectory> <SolutionFilePath>", AppDomain.CurrentDomain.FriendlyName);
                 Console.ReadLine();
                 return;
             }
@@ -41,12 +42,18 @@ namespace ImportComments
             }
             p.ParseIntelliSenseFiles();
 
-            // Adds all the references needed for CommentID to build correctly
-            var metadataReferences = new MetadataReference[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) };
+            var workspace = MSBuildWorkspace.Create();
+
+            var solution = workspace.OpenSolutionAsync(args[2]).Result;
+
+            var projects = solution.Projects.ToList();
+
+            var metadataReferences = projects.Where(proj => !proj.Name.Contains("test")) // Filter out test projects I guess?
+                                             .SelectMany(proj => proj.MetadataReferences)
+                                             .Distinct(); // Does it matter if they're distinct or not?
 
             foreach (var file in EnumerateSourceFiles(args[1]))
             {
-
                 // Reads the source code from the file
                 SourceText text;
                 using (var stream = File.OpenRead(file))
@@ -65,8 +72,6 @@ namespace ImportComments
                 //Checks to see if the source code was changed
                 if (tree != newTree)
                 {
-                    Workspace workspace = MSBuildWorkspace.Create();
-
                     var options = SetOptions(workspace.Options);
 
                     SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
