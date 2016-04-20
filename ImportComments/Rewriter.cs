@@ -45,6 +45,12 @@ namespace ImportComments
                         AppendPrettyPrintedComment(reader, output);
                     } while (reader.Read());
                     docComment = output.ToString().Replace("        ", "");
+
+                    // Remove fully qualified IDs for Simplifier to work
+                    docComment = docComment.Replace("cref=\"T:", "cref=\"");
+                    docComment = docComment.Replace("cref=\"M:", "cref=\"");
+                    docComment = docComment.Replace("cref=\"P:", "cref=\"");
+                    docComment = docComment.Replace("cref=\"F:", "cref=\"");
                 }
             }
             catch (KeyNotFoundException)
