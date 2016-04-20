@@ -53,7 +53,12 @@ namespace ImportComments
                                              .SelectMany(proj => proj.MetadataReferences)
                                              .Distinct(); // Does it matter if they're distinct or not?
 
-            var project = projects.Single(proj => proj.FilePath.Contains(args[1]));
+            var project = projects.SingleOrDefault(proj => proj.FilePath.Contains(args[1]));
+            if (project == null)
+            {
+                var path = GetPathToProject(args[1]);
+                project = workspace.OpenProjectAsync(path).Result;
+            }
 
             foreach (var document in project.Documents)
             {
@@ -95,6 +100,13 @@ namespace ImportComments
 
             Console.WriteLine("Press ENTER to exit;");
             Console.ReadLine();
+        }
+
+        private static string GetPathToProject(string refPath)
+        {
+            var split = refPath.Split('\\');
+            var libraryName = split[split.Length - 2];
+            return $"{refPath}/{libraryName}.csproj";
         }
 
         private static OptionSet SetOptions(OptionSet options)
