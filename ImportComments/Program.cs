@@ -9,6 +9,7 @@ using System.IO;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Simplification;
 
 namespace ImportComments
 {
@@ -52,11 +53,13 @@ namespace ImportComments
                                              .SelectMany(proj => proj.MetadataReferences)
                                              .Distinct(); // Does it matter if they're distinct or not?
 
-            foreach (var file in EnumerateSourceFiles(args[1]))
+            var project = projects.Single(proj => proj.FilePath.Contains(args[1]));
+
+            foreach (var document in project.Documents)
             {
                 // Reads the source code from the file
                 SourceText text;
-                using (var stream = File.OpenRead(file))
+                using (var stream = File.OpenRead(document.FilePath))
                 {
                     text = SourceText.From(stream);
                 }
@@ -72,13 +75,17 @@ namespace ImportComments
                 //Checks to see if the source code was changed
                 if (tree != newTree)
                 {
+
+                    var simplifiedDoc = Simplifier.ReduceAsync(document.WithSyntaxRoot(newTree.GetRoot())).Result;
+
                     var options = SetOptions(workspace.Options);
 
-                    SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
+                    //SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
+                    SyntaxNode formattedNode = Formatter.Format(simplifiedDoc.GetSyntaxRootAsync().Result, workspace, options);
 
-                    Console.WriteLine($"Saving file: {file}");
+                    Console.WriteLine($"Saving file: {document.FilePath}");
                     SourceText newText = formattedNode.GetText();
-                    using (var writer = new StreamWriter(file, append: false, encoding: text.Encoding))
+                    using (var writer = new StreamWriter(document.FilePath, append: false, encoding: text.Encoding))
                     {
                         newText.Write(writer);
                     }

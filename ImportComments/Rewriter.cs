@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.IO;
 using System;
+using Microsoft.CodeAnalysis.Simplification;
 
 namespace ImportComments
 {
@@ -327,7 +328,7 @@ namespace ImportComments
             {
                 node = node.WithLeadingTrivia(newTrivia);
             }
-            return node;
+            return node.WithAdditionalAnnotations(Simplifier.Annotation);
         }
 
         private bool IsPrivateOrInternal(Accessibility enumValue)
