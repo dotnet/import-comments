@@ -22,6 +22,7 @@ namespace ImportComments
             {
                 Console.WriteLine("Usage:");
                 Console.WriteLine("{0} <IntelliSenseDirectory> <SourceDirectory> <SolutionFilePath>", AppDomain.CurrentDomain.FriendlyName);
+                Console.WriteLine("Press ENTER to exit;");
                 Console.ReadLine();
                 return;
             }
@@ -32,12 +33,21 @@ namespace ImportComments
             if (!Directory.Exists(p.IntelliSenseDirectory))
             {
                 Console.WriteLine($"Directory not found: {p.IntelliSenseDirectory}");
+                Console.WriteLine("Press ENTER to exit;");
                 Console.ReadLine();
                 return;
             }            
             if (!Directory.Exists(args[1]))
             {
                 Console.WriteLine($"Directory not found: {args[1]}");
+                Console.WriteLine("Press ENTER to exit;");
+                Console.ReadLine();
+                return;
+            }
+            if (!File.Exists(args[2]))
+            {
+                Console.WriteLine($"Solution file not found: {args[2]}");
+                Console.WriteLine("Press ENTER to exit;");
                 Console.ReadLine();
                 return;
             }

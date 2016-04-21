@@ -47,10 +47,13 @@ namespace ImportComments
                     docComment = output.ToString().Replace("        ", "");
 
                     // Remove fully qualified IDs for Simplifier to work
-                    docComment = docComment.Replace("cref=\"T:", "cref=\"");
-                    docComment = docComment.Replace("cref=\"M:", "cref=\"");
-                    docComment = docComment.Replace("cref=\"P:", "cref=\"");
-                    docComment = docComment.Replace("cref=\"F:", "cref=\"");
+                    if (docComment.IndexOf("cref") >= 0)
+                    {
+                        docComment = docComment.Replace("cref=\"T:", "cref=\"");
+                        docComment = docComment.Replace("cref=\"M:", "cref=\"");
+                        docComment = docComment.Replace("cref=\"P:", "cref=\"");
+                        docComment = docComment.Replace("cref=\"F:", "cref=\"");
+                    }
                 }
             }
             catch (KeyNotFoundException)
@@ -309,7 +312,6 @@ namespace ImportComments
             if (node.HasLeadingTrivia)
             {
                 SyntaxTriviaList triviaList = node.GetLeadingTrivia();
-                SyntaxTrivia firstComment = triviaList.Last();
 
                 // Check to see if there are any existing doc comments
                 var docComments = triviaList
@@ -318,17 +320,8 @@ namespace ImportComments
                         .OfType<DocumentationCommentTriviaSyntax>()
                         .ToList();
 
-                if (!docComments.Any())
-                {
-                    // Append the doc comment
-                    node = node.InsertTriviaBefore(firstComment, newTrivia);
-                }
-#if DEBUG
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"/// comment already exists: {docCommentId}");
-                }
-#endif
+                // Append the doc comment (even if the API already has /// comments)
+                node = node.InsertTriviaBefore(triviaList.First(), newTrivia);
             }
             else // no leading trivia
             {
