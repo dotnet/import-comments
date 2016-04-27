@@ -96,6 +96,7 @@ namespace ImportComments
                 var simplifiedTriviaLookup = GetSimplifiedCommentLookup(simplifiedTree, metadataReferences);
 
                 var rw = new MoveCommentsRewriter(compilation.GetSemanticModel(initialTree), simplifiedTree.GetRoot(), simplifiedTriviaLookup);
+
                 var finalTree = rw.Visit(initialTree.GetRoot()).SyntaxTree;
 
                 if (initialTree != finalTree)
@@ -159,7 +160,7 @@ namespace ImportComments
                         continue;
                     }
 
-                    // pattern matching syntax would be nice here
+                    // A pattern matching expression would be nice here.
                     ISymbol symbol = null;
                     if (child is EventFieldDeclarationSyntax)
                     {
@@ -174,12 +175,6 @@ namespace ImportComments
                     else
                     {
                         symbol = model.GetDeclaredSymbol(child);
-                    }
-
-                    var accessibility = symbol.DeclaredAccessibility;
-                    if (accessibility == Accessibility.Private || accessibility == Accessibility.Internal)
-                    {
-                        continue;
                     }
 
                     var commentId = symbol.GetDocumentationCommentId();
