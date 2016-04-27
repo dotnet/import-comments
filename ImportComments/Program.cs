@@ -81,8 +81,8 @@ namespace ImportComments
 
                 SyntaxTree initialTree = (SyntaxTree)CSharpSyntaxTree.ParseText(text);
 
-                var compilation = CSharpCompilation.Create("test", syntaxTrees: new[] { initialTree },
-                    references: metadataReferences);
+                var compilation = CSharpCompilation.Create(
+                    "test", syntaxTrees: new[] { initialTree }, references: metadataReferences);
 
                 var rewriter = new Rewriter(compilation.GetSemanticModel(initialTree), p.MembersDictionary);
                 
@@ -100,6 +100,7 @@ namespace ImportComments
 
                 if (initialTree != finalTree)
                 {
+                    // Need to call format here because comments are inserted at the 0th column when rewriting the syntax tree.
                     var formattedRootNode = Formatter.Format(finalTree.GetRoot(), workspace, options);
 
                     Console.WriteLine($"Saving file: {document.FilePath}");
@@ -117,9 +118,8 @@ namespace ImportComments
 
         private static Dictionary<string, SyntaxTriviaList> GetSimplifiedCommentLookup(SyntaxTree simplifiedTree, IEnumerable<MetadataReference> metadataReferences)
         {
-            var compilation = CSharpCompilation.Create(assemblyName: "simplifiedTest",
-                                                       syntaxTrees: new[] { simplifiedTree },
-                                                       references: metadataReferences);
+            var compilation = CSharpCompilation.Create(
+                assemblyName: "simplifiedTest", syntaxTrees: new[] { simplifiedTree }, references: metadataReferences);
 
             var model = compilation.GetSemanticModel(simplifiedTree);
 
@@ -146,7 +146,6 @@ namespace ImportComments
                        n is PropertyDeclarationSyntax ||
                        n is StructDeclarationSyntax ||
                        n is EnumMemberDeclarationSyntax;
-
             };
 
             foreach (var child in node.ChildNodes())
@@ -160,10 +159,21 @@ namespace ImportComments
                         continue;
                     }
 
-                    var symbol = model.GetDeclaredSymbol(child);
-                    if (symbol == null)
+                    // pattern matching syntax would be nice here
+                    ISymbol symbol = null;
+                    if (child is EventFieldDeclarationSyntax)
                     {
-                        continue;
+                        var c = child as EventFieldDeclarationSyntax;
+                        symbol = model.GetDeclaredSymbol(c.Declaration.Variables.First());
+                    }
+                    else if (child is FieldDeclarationSyntax)
+                    {
+                        var c = child as FieldDeclarationSyntax;
+                        symbol = model.GetDeclaredSymbol(c.Declaration.Variables.First());
+                    }
+                    else
+                    {
+                        symbol = model.GetDeclaredSymbol(child);
                     }
 
                     var accessibility = symbol.DeclaredAccessibility;
