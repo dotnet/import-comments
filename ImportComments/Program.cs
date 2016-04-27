@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Formatting;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Simplification;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ImportComments
 {
@@ -36,7 +37,7 @@ namespace ImportComments
                 Console.WriteLine("Press ENTER to exit;");
                 Console.ReadLine();
                 return;
-            }            
+            }
             if (!Directory.Exists(args[1]))
             {
                 Console.WriteLine($"Directory not found: {args[1]}");
@@ -72,42 +73,112 @@ namespace ImportComments
 
             foreach (var document in project.Documents)
             {
-                // Reads the source code from the file
                 SourceText text;
                 using (var stream = File.OpenRead(document.FilePath))
                 {
                     text = SourceText.From(stream);
                 }
 
-                SyntaxTree tree = (SyntaxTree)CSharpSyntaxTree.ParseText(text);
+                SyntaxTree initialTree = (SyntaxTree)CSharpSyntaxTree.ParseText(text);
 
-                var compilation = CSharpCompilation.Create("test", syntaxTrees: new[] { tree }, 
+                var compilation = CSharpCompilation.Create("test", syntaxTrees: new[] { initialTree },
                     references: metadataReferences);
-                var rewriter = new Rewriter(compilation.GetSemanticModel(tree), p.MembersDictionary);
-                var newTreeRootNode = rewriter.Visit(tree.GetRoot());
-                var newTree = newTreeRootNode.SyntaxTree;
 
-                //Checks to see if the source code was changed
-                if (tree != newTree)
+                var rewriter = new Rewriter(compilation.GetSemanticModel(initialTree), p.MembersDictionary);
+                
+                var treeWithFormattedTrivia = rewriter.Visit(initialTree.GetRoot()).SyntaxTree;
+
+                var options = SetOptions(workspace.Options);
+
+                var simplifiedTree = Simplifier.ReduceAsync(document.WithSyntaxRoot(treeWithFormattedTrivia.GetRoot()), options).Result
+                                    .GetSyntaxTreeAsync().Result;
+
+                var simplifiedTriviaLookup = GetSimplifiedCommentLookup(simplifiedTree, metadataReferences);
+
+                var rw = new MoveCommentsRewriter(compilation.GetSemanticModel(initialTree), simplifiedTree.GetRoot(), simplifiedTriviaLookup);
+                var finalTree = rw.Visit(initialTree.GetRoot()).SyntaxTree;
+
+                if (initialTree != finalTree)
                 {
-                    var options = SetOptions(workspace.Options);
-
-                    var simplifiedDoc = Simplifier.ReduceAsync(document.WithSyntaxRoot(newTree.GetRoot()), options).Result;
-
-                    SyntaxNode formattedNode = Formatter.Format(simplifiedDoc.GetSyntaxRootAsync().Result, workspace, options);
+                    var formattedRootNode = Formatter.Format(finalTree.GetRoot(), workspace, options);
 
                     Console.WriteLine($"Saving file: {document.FilePath}");
-                    SourceText newText = formattedNode.GetText();
+                    SourceText newText = formattedRootNode.GetText();
                     using (var writer = new StreamWriter(document.FilePath, append: false, encoding: text.Encoding))
                     {
                         newText.Write(writer);
                     }
                 }
-
             }
 
             Console.WriteLine("Press ENTER to exit;");
             Console.ReadLine();
+        }
+
+        private static Dictionary<string, SyntaxTriviaList> GetSimplifiedCommentLookup(SyntaxTree simplifiedTree, IEnumerable<MetadataReference> metadataReferences)
+        {
+            var compilation = CSharpCompilation.Create(assemblyName: "simplifiedTest",
+                                                       syntaxTrees: new[] { simplifiedTree },
+                                                       references: metadataReferences);
+
+            var model = compilation.GetSemanticModel(simplifiedTree);
+
+            return GetSimplifiedCommentLookupImpl(simplifiedTree.GetRoot(), model, new Dictionary<string, SyntaxTriviaList>());
+        }
+
+        private static Dictionary<string, SyntaxTriviaList> GetSimplifiedCommentLookupImpl(SyntaxNode node, SemanticModel model, Dictionary<string, SyntaxTriviaList> lookup)
+        {
+            Func<SyntaxNode, bool> isCorrectSyntaxType = n =>
+            {
+                return n is ClassDeclarationSyntax ||
+                       n is MethodDeclarationSyntax ||
+                       n is ConstructorDeclarationSyntax ||
+                       n is DelegateDeclarationSyntax ||
+                       n is ConversionOperatorDeclarationSyntax ||
+                       n is DestructorDeclarationSyntax ||
+                       n is EnumDeclarationSyntax ||
+                       n is EventDeclarationSyntax ||
+                       n is EventFieldDeclarationSyntax ||
+                       n is FieldDeclarationSyntax ||
+                       n is IndexerDeclarationSyntax ||
+                       n is InterfaceDeclarationSyntax ||
+                       n is OperatorDeclarationSyntax ||
+                       n is PropertyDeclarationSyntax ||
+                       n is StructDeclarationSyntax ||
+                       n is EnumMemberDeclarationSyntax;
+
+            };
+
+            foreach (var child in node.ChildNodes())
+            {
+                if (child.HasLeadingTrivia)
+                {
+                    lookup = GetSimplifiedCommentLookupImpl(child, model, lookup);
+
+                    if (!isCorrectSyntaxType(child))
+                    {
+                        continue;
+                    }
+
+                    var symbol = model.GetDeclaredSymbol(child);
+                    if (symbol == null)
+                    {
+                        continue;
+                    }
+
+                    var accessibility = symbol.DeclaredAccessibility;
+                    if (accessibility == Accessibility.Private || accessibility == Accessibility.Internal)
+                    {
+                        continue;
+                    }
+
+                    var commentId = symbol.GetDocumentationCommentId();
+
+                    lookup.Add(commentId, child.GetLeadingTrivia());
+                }
+            }
+
+            return lookup;
         }
 
         private static string GetPathToProject(string refPath)
@@ -116,7 +187,7 @@ namespace ImportComments
             var libraryName = split[split.Length - 2];
             return $"{refPath}/{libraryName}.csproj";
         }
-        
+
         private static OptionSet SetOptions(OptionSet options)
         {
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, true);

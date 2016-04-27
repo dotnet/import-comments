@@ -53,6 +53,7 @@ namespace ImportComments
                         docComment = docComment.Replace("cref=\"M:", "cref=\"");
                         docComment = docComment.Replace("cref=\"P:", "cref=\"");
                         docComment = docComment.Replace("cref=\"F:", "cref=\"");
+                        docComment = docComment.Replace("cref=\"E:", "cref=\"");
                     }
                 }
             }

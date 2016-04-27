@@ -103,6 +103,7 @@
   <ItemGroup>
     <Compile Include="CommentFormatting.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="MoveCommentsRewriter.cs" />
     <Compile Include="ParseIntelliSense.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
