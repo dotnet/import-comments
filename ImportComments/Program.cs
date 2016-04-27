@@ -90,12 +90,10 @@ namespace ImportComments
                 //Checks to see if the source code was changed
                 if (tree != newTree)
                 {
-
-                    var simplifiedDoc = Simplifier.ReduceAsync(document.WithSyntaxRoot(newTree.GetRoot())).Result;
-
                     var options = SetOptions(workspace.Options);
 
-                    //SyntaxNode formattedNode = Formatter.Format(newTree.GetRoot(), workspace, options);
+                    var simplifiedDoc = Simplifier.ReduceAsync(document.WithSyntaxRoot(newTree.GetRoot()), options).Result;
+
                     SyntaxNode formattedNode = Formatter.Format(simplifiedDoc.GetSyntaxRootAsync().Result, workspace, options);
 
                     Console.WriteLine($"Saving file: {document.FilePath}");
@@ -118,7 +116,7 @@ namespace ImportComments
             var libraryName = split[split.Length - 2];
             return $"{refPath}/{libraryName}.csproj";
         }
-
+        
         private static OptionSet SetOptions(OptionSet options)
         {
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAccessors, true);
@@ -130,6 +128,16 @@ namespace ImportComments
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInTypes, true);
+
+            options = options.WithChangedOption(SimplificationOptions.PreferAliasToQualification, false);
+            options = options.WithChangedOption(SimplificationOptions.PreferOmittingModuleNamesInQualification, false);
+            options = options.WithChangedOption(SimplificationOptions.PreferImplicitTypeInference, false);
+            options = options.WithChangedOption(SimplificationOptions.PreferImplicitTypeInLocalDeclaration, false);
+            options = options.WithChangedOption(SimplificationOptions.AllowSimplificationToGenericType, true);
+            options = options.WithChangedOption(SimplificationOptions.AllowSimplificationToBaseType, false);
+            options = options.WithChangedOption(SimplificationOptions.QualifyMemberAccessWithThisOrMe, LanguageNames.CSharp, true);
+            options = options.WithChangedOption(SimplificationOptions.PreferIntrinsicPredefinedTypeKeywordInDeclaration, LanguageNames.CSharp, false);
+            options = options.WithChangedOption(SimplificationOptions.PreferIntrinsicPredefinedTypeKeywordInMemberAccess, LanguageNames.CSharp, false);
 
             return options;
         }
