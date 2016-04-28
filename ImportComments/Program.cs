@@ -64,19 +64,46 @@ namespace ImportComments
                                              .SelectMany(proj => proj.MetadataReferences)
                                              .Distinct(); // Does it matter if they're distinct or not?
 
-            var project = projects.SingleOrDefault(proj => proj.FilePath.Contains(args[1]));
-            if (project == null)
+            Project project = null;
+
+            var projectsMatchingDir = projects.Where(proj => proj.FilePath.Contains(args[1])).ToList();
+            if (projects.Count > 1)
+            {
+                // Picking the first one is fine because this pattern emerged in the following case:
+                //
+                // System.LibraryWeCareAbout
+                // System.LibraryWeCareAbout.Other
+                //
+                // In this case, we just use the first.  We can always run the tool again on the second one if it's necessary.
+                project = projects.FirstOrDefault(proj => proj.FilePath.Contains(args[1]));
+            }
+            else if (projectsMatchingDir.Count == 0)
             {
                 var path = GetPathToProject(args[1]);
                 project = workspace.OpenProjectAsync(path).Result;
+            }
+            else
+            {
+                project = projectsMatchingDir.First();
             }
 
             foreach (var document in project.Documents)
             {
                 SourceText text;
-                using (var stream = File.OpenRead(document.FilePath))
+                try
                 {
-                    text = SourceText.From(stream);
+                    using (var stream = File.OpenRead(document.FilePath))
+                    {
+                        text = SourceText.From(stream);
+                    }
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    continue;
+                }
+                catch (FileNotFoundException)
+                {
+                    continue;
                 }
 
                 SyntaxTree initialTree = (SyntaxTree)CSharpSyntaxTree.ParseText(text);
@@ -199,9 +226,9 @@ namespace ImportComments
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousMethods, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInAnonymousTypes, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInControlBlocks, true);
-            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInLambdaExpressionBody, false);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInLambdaExpressionBody, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInMethods, true);
-            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, false);
+            options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInObjectCollectionArrayInitializers, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInProperties, true);
             options = options.WithChangedOption(CSharpFormattingOptions.NewLinesForBracesInTypes, true);
 
