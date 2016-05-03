@@ -178,7 +178,7 @@ namespace ImportComments
 
             foreach (var child in node.ChildNodes())
             {
-                if (child.HasLeadingTrivia)
+                if (child.HasLeadingTrivia || child is NamespaceDeclarationSyntax)
                 {
                     lookup = GetSimplifiedCommentLookupImpl(child, model, lookup);
 
