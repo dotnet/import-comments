@@ -139,7 +139,7 @@ namespace ImportComments
             return Tuple.Create(i, false);
         }
 
-        private static bool IsPunctuation(char c) => c == '.' || c == ',' || c == '!' || c == '?';
+        private static bool IsPunctuation(char c) => c == '.' || c == ',' || c == '!' || c == '?' || c == ';';
 
         private static List<string> GetSubstringsWithoutXMLTags(string s)
         {
